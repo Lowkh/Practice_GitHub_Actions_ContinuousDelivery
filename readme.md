@@ -134,8 +134,9 @@ ls
 
 **Create file: `src/app.py`**
 
-```powershell
-@"
+Use VS Code or your editor to create this file:
+
+```python
 """Simple calculator application."""
 
 class Calculator:
@@ -165,15 +166,13 @@ if __name__ == "__main__":
     calc = Calculator()
     print(f"2 + 3 = {calc.add(2, 3)}")
     print(f"10 - 4 = {calc.subtract(10, 4)}")
-"@ | Out-File -Encoding UTF8 src\app.py
 ```
 
 ### 2.3: Create Tests
 
 **Create file: `tests/test_app.py`**
 
-```powershell
-@"
+```python
 """Tests for calculator."""
 
 import pytest
@@ -203,26 +202,22 @@ class TestCalculator:
     def test_divide_by_zero(self, calc):
         with pytest.raises(ValueError):
             calc.divide(10, 0)
-"@ | Out-File -Encoding UTF8 tests\test_app.py
 ```
 
 ### 2.4: Create Dependencies File
 
 **Create file: `requirements.txt`**
 
-```powershell
-@"
+```
 pytest==7.4.3
 pytest-cov==4.1.0
-"@ | Out-File -Encoding UTF8 requirements.txt
 ```
 
 ### 2.5: Create Setup File
 
 **Create file: `setup.py`**
 
-```powershell
-@"
+```python
 from setuptools import setup, find_packages
 
 setup(
@@ -233,7 +228,6 @@ setup(
     packages=find_packages(),
     python_requires=">=3.9",
 )
-"@ | Out-File -Encoding UTF8 setup.py
 ```
 
 ### 2.6: Create Empty Init Files
@@ -276,10 +270,11 @@ This workflow **automatically runs when you push code**.
 
 ### 3.1: Create Workflow File
 
-**Create: `.github/workflows/1-build-test.yml`**
+**Create file: `.github/workflows/1-build-test.yml`**
 
-```powershell
-$workflow = @"
+Copy-paste this entire content directly:
+
+```yaml
 name: 1️⃣ Build & Test
 
 on:
@@ -291,90 +286,83 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     outputs:
-      rc_version: `${{ steps.version.outputs.rc_version }}
+      rc_version: ${{ steps.version.outputs.rc_version }}
 
     steps:
-      # Step 1: Get the code
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Setup Python
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # Step 3: Install dependencies
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Run tests
       - name: ✅ Run Tests
         run: |
           pytest tests/ -v --cov=src --cov-report=html --cov-report=term
           echo "All tests passed!"
 
-      # Step 5: Generate version
       - name: 🏷️ Generate Version
         id: version
         run: |
-          SHORT_SHA=`$(git rev-parse --short HEAD)
-          TIMESTAMP=`$(date +%Y%m%d_%H%M%S)
-          RC_VERSION="v0.0.0-rc.`${TIMESTAMP}.`${SHORT_SHA}"
-          echo "rc_version=`${RC_VERSION}" >> "`$GITHUB_OUTPUT"
-          echo "RC Version: `${RC_VERSION}"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          RC_VERSION="v0.0.0-rc.${TIMESTAMP}.${SHORT_SHA}"
+          echo "rc_version=${RC_VERSION}" >> $GITHUB_OUTPUT
+          echo "RC Version: ${RC_VERSION}"
 
-      # Step 6: Upload test results
       - name: 📊 Upload Test Report
         uses: actions/upload-artifact@v4
         with:
-          name: test-report-`${{ steps.version.outputs.rc_version }}
+          name: test-report-${{ steps.version.outputs.rc_version }}
           path: htmlcov/
           retention-days: 7
 
-      # Step 7: Create draft release with artifacts
       - name: 📤 Create Draft Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: `${{ steps.version.outputs.rc_version }}
+          tag_name: ${{ steps.version.outputs.rc_version }}
           draft: true
           body: |
             # Release Candidate
-            
-            **Version:** `${{ steps.version.outputs.rc_version }}`
-            **Build Time:** `$(date)`
-            **Branch:** develop
-            
-            ## ✅ What Passed
-            - [x] All unit tests passed
-            - [x] Code built successfully
-            
-            ## 👥 Next Step
-            Team review is required:
-            1. Download test report
-            2. Review test coverage
-            3. If OK, approve this release
-            
-            **To Approve:** Click "Edit" → Uncheck "Draft" → "Update release"
+            **Version:** ${{ steps.version.outputs.rc_version }}
+            **Status:** Waiting for team approval
+            **To Approve:** Edit → Uncheck Draft → Update
         env:
-          GITHUB_TOKEN: `${{ secrets.GITHUB_TOKEN }}
-"@
-
-$workflow | Out-File -Encoding UTF8 .github\workflows\1-build-test.yml
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### 3.2: Push Workflow to GitHub
+### 3.2: How to Create the File
+
+**Method 1: VS Code (Easiest)**
+1. Open your project in VS Code
+2. Create file: `.github/workflows/1-build-test.yml`
+3. Copy-paste the YAML above
+4. Save (Ctrl+S)
+
+**Method 2: GitHub Web Editor**
+1. Go to github.com/yourusername/my-calculator
+2. Click "Add file" → "Create new file"
+3. Type: `.github/workflows/1-build-test.yml`
+4. Paste the YAML content
+5. Click "Commit changes"
+
+**Method 3: PowerShell**
+```powershell
+# Copy the YAML content from above, paste into Notepad
+# Save as: .github\workflows\1-build-test.yml (with quotes to preserve filename)
+```
+
+### 3.3: Push to GitHub
 
 ```powershell
-# Stage the workflow
 git add .github\workflows\1-build-test.yml
-
-# Commit
 git commit -m "Add build and test workflow"
-
-# Push to develop
 git push origin develop
 ```
 
@@ -382,14 +370,9 @@ git push origin develop
 
 ## Step 4: Create Second Workflow – Approval & Merge (CD - Delivery)
 
-This workflow **runs when team approves the release**.
+**Create file: `.github/workflows/2-approval-merge.yml`**
 
-### 4.1: Create Merge Workflow
-
-**Create: `.github/workflows/2-approval-merge.yml`**
-
-```powershell
-$workflow = @"
+```yaml
 name: 2️⃣ Approval & Merge to Main
 
 on:
@@ -398,23 +381,20 @@ on:
 
 jobs:
   merge:
-    name: Merge to main and create release tag
+    name: Merge to main
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Get code
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Step 2: Setup git
       - name: ⚙️ Configure Git
         run: |
           git config user.name "GitHub Actions"
           git config user.email "github-actions@github.com"
 
-      # Step 3: Create main branch if needed
       - name: 🌳 Prepare main branch
         run: |
           git fetch origin develop
@@ -425,61 +405,26 @@ jobs:
             git checkout main
           fi
 
-      # Step 4: Merge develop into main
       - name: 🔄 Merge develop → main
         run: |
           git fetch origin develop
-          git merge origin/develop --no-ff -m "Approved Release: `${{ github.event.release.tag_name }}"
-          echo "Merged develop into main"
+          git merge origin/develop --no-ff -m "Release approved"
 
-      # Step 5: Create semantic version tag
       - name: 🏷️ Create Release Tag
         id: tag
         run: |
-          # Extract version from RC tag
-          RC_TAG="`${{ github.event.release.tag_name }}"
-          echo "RC Tag: `$RC_TAG"
-          
-          # Create release tag (v1.0.0, v1.0.1, etc)
           RELEASE_TAG="v1.0.0"
-          echo "release_tag=`${RELEASE_TAG}" >> "`$GITHUB_OUTPUT"
-          
-          git tag -a "`${RELEASE_TAG}" -m "Release `${RELEASE_TAG}"
-          echo "Created tag: `${RELEASE_TAG}"
+          git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_TAG}"
+          echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
 
-      # Step 6: Push main and tag
       - name: 📤 Push to GitHub
         run: |
           git push origin main
-          git push origin `${{ steps.tag.outputs.release_tag }}
-          echo "✅ Pushed main branch and tag"
-
-      # Step 7: Update release notes
-      - name: 📝 Update Release Notes
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: context.payload.release.id,
-              body: `${{ github.event.release.body }}
-
----
-
-## ✅ APPROVED & MERGED
-
-- **Status**: Merged to main ✅
-- **Release Tag**: \`${{ steps.tag.outputs.release_tag }}\`
-- **Approved at**: \`$(date)\`
-- **Next**: Automatic deployment starting...`
-            });
-"@
-
-$workflow | Out-File -Encoding UTF8 .github\workflows\2-approval-merge.yml
+          git push origin ${{ steps.tag.outputs.release_tag }}
+          echo "✅ Merged and tagged!"
 ```
 
-### 4.2: Push to GitHub
+### Push to GitHub
 
 ```powershell
 git add .github\workflows\2-approval-merge.yml
@@ -491,14 +436,9 @@ git push origin develop
 
 ## Step 5: Create Third Workflow – Deploy (CD - Deployment)
 
-This workflow **automatically runs when a release tag is created**.
+**Create file: `.github/workflows/3-deploy-staging.yml`**
 
-### 5.1: Create Deployment Workflow
-
-**Create: `.github/workflows/3-deploy-staging.yml`**
-
-```powershell
-$workflow = @"
+```yaml
 name: 3️⃣ Deploy to Staging
 
 on:
@@ -514,75 +454,43 @@ jobs:
       name: staging
 
     steps:
-      # Step 1: Get code
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Extract version
       - name: 🏷️ Get Version from Tag
         id: version
         run: |
-          VERSION="`${GITHUB_REF#refs/tags/}"
-          echo "version=`${VERSION}" >> "`$GITHUB_OUTPUT"
-          echo "Deploying version: `${VERSION}"
+          VERSION="${GITHUB_REF#refs/tags/}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Deploying version: ${VERSION}"
 
-      # Step 3: Setup Python
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # Step 4: Install dependencies
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 5: Run tests (ensure quality before deploy)
       - name: ✅ Run Tests
-        run: |
-          pytest tests/ -v
-          echo "All tests passed before deployment"
+        run: pytest tests/ -v
 
-      # Step 6: Simulate deployment
       - name: 🚀 Deploy to Staging
         run: |
-          echo "═══════════════════════════════"
-          echo "🚀 DEPLOYING TO STAGING"
-          echo "═══════════════════════════════"
-          echo "Version: `${{ steps.version.outputs.version }}"
-          echo "Timestamp: `$(date)"
-          echo ""
-          echo "Deployment steps:"
-          echo "1. ✅ Code pulled from main"
-          echo "2. ✅ Dependencies installed"
-          echo "3. ✅ Tests ran successfully"
-          echo "4. ✅ Application started"
-          echo ""
-          echo "Staging URL: https://staging.example.com"
-          echo "═══════════════════════════════"
+          echo "🚀 Deploying version ${{ steps.version.outputs.version }}"
+          echo "✅ Application started"
 
-      # Step 7: Health check
       - name: 🏥 Health Check
         run: |
-          echo "Running health checks..."
-          python -c "from src.app import Calculator; c = Calculator(); assert c.add(2, 3) == 5; print('✅ Calculator health check passed')"
-          echo "✅ All health checks passed"
+          python -c "from src.app import Calculator; c = Calculator(); assert c.add(2, 3) == 5; print('✅ Health check passed')"
 
-      # Step 8: Deployment success notification
       - name: ✨ Deployment Complete
-        run: |
-          echo "🎉 Successfully deployed version `${{ steps.version.outputs.version }} to staging!"
-          echo ""
-          echo "Next steps:"
-          echo "- QA can test the application"
-          echo "- When ready, promote to production"
-"@
-
-$workflow | Out-File -Encoding UTF8 .github\workflows\3-deploy-staging.yml
+        run: echo "🎉 Successfully deployed!"
 ```
 
-### 5.2: Push to GitHub
+### Push to GitHub
 
 ```powershell
 git add .github\workflows\3-deploy-staging.yml
@@ -596,39 +504,33 @@ git push origin develop
 
 ## Step 6: Create Staging Environment
 
-This tells GitHub where to deploy.
+**All on GitHub.com (NOT in PowerShell):**
 
-### 6.1: Create Environment
-
-1. **Go to your repo on GitHub.com**
+1. **Go to your repo** on github.com
 2. **Click "Settings"** tab (top right)
-3. **Left menu** → **"Environments"** (scroll down under "Deployments")
+3. **Left menu** → **"Environments"** (scroll down)
 4. **Click "New environment"** (green button)
 5. **Type name:** `staging`
 6. **Press Enter**
-7. **Scroll down** → **"Save protection rules"**
+7. **Click "Save protection rules"**
 
-**Done!** Environment is created ✅
+**Done!** ✅
 
 ---
 
 # 🧪 Part 4: Test the Complete Pipeline
 
-## Step 7: Trigger the Pipeline with a Code Change
+## Step 7: Trigger the Pipeline
 
-### 7.1: Make a Code Change
+### Make a Code Change
 
 ```powershell
-# Create a small change
-Add-Content -Path README.md -Value "`n## CI/CD Pipeline Status: ✅ Active"
+# Add a line to README
+Add-Content -Path README.md -Value "`n## CI/CD Status: Active"
 
-# Stage it
+# Commit and push
 git add README.md
-
-# Commit
 git commit -m "test: trigger CI/CD pipeline"
-
-# Push to develop
 git push origin develop
 ```
 
@@ -638,288 +540,112 @@ git push origin develop
 
 ## Step 8: Watch Workflow 1 (Build & Test)
 
-### 8.1: Go to Actions Tab
-
-1. **Go to your repo on GitHub.com**
-2. **Click "Actions"** tab
-3. **Find "1️⃣ Build & Test"** workflow running
-4. **Click on it** to watch progress
-
-### 8.2: Watch the Steps
-
-You should see:
-
-```
-✅ 📥 Checkout code
-✅ 🐍 Setup Python
-✅ 📦 Install dependencies
-✅ ✅ Run Tests
-✅ 🏷️ Generate Version
-✅ 📊 Upload Test Report
-✅ 📤 Create Draft Release
-```
-
-**Wait for all steps to complete (2-3 minutes)**
-
-**Expected Result:** Green checkmarks on all steps ✅
+1. Go to your repo on **github.com**
+2. Click **"Actions"** tab
+3. Find **"1️⃣ Build & Test"** workflow (yellow = running)
+4. Wait 2-3 minutes for completion
+5. All steps should have green checkmarks ✅
 
 ---
 
 ## Step 9: Team Approval – Publish the Draft Release
 
-### 9.1: Go to Releases
+1. Go to **"Releases"** tab
+2. Find the **draft release** (gray "Draft" button)
+3. Click on it
+4. Review the test results
+5. Click **"Edit"** button (top right)
+6. Find checkbox: **"Set as a draft"** (check it ✓)
+7. Click to uncheck it ☐
+8. Scroll down → Click **"Update release"**
 
-1. **Go to your repo on GitHub.com**
-2. **Click "Releases"** tab
-3. **Find the draft release** (gray "Draft" button)
-   - Name looks like: `v0.0.0-rc.20260102_150000.abc123`
-
-### 9.2: Review the Release
-
-1. **Click on the draft release**
-2. **Read the release notes:**
-   - ✅ Tests passed
-   - ✅ Build successful
-3. **Download test report** (click "Assets" if available)
-4. **Review** test coverage
-
-### 9.3: Approve by Publishing
-
-**This is the team approval step!**
-
-1. **Click "Edit"** button (top right)
-2. **Find checkbox:** "Set as a draft" (should be ✓ checked)
-3. **Click the checkbox** to uncheck it ☐
-4. **Scroll down**
-5. **Click "Update release"** button
-
-**Wait a few seconds...**
+**This is the APPROVAL step!** 👥
 
 ---
 
-## Step 10: Watch Workflow 2 (Approval & Merge)
+## Step 10: Watch Workflow 2 (Merge)
 
-### 10.1: Check Actions
-
-1. **Go to "Actions"** tab
-2. **Find "2️⃣ Approval & Merge to Main"** workflow
-3. **Click on it** to watch progress
-
-### 10.2: Watch the Steps
-
-```
-✅ 📥 Checkout code
-✅ ⚙️ Configure Git
-✅ 🌳 Prepare main branch
-✅ 🔄 Merge develop → main
-✅ 🏷️ Create Release Tag
-✅ 📤 Push to GitHub
-✅ 📝 Update Release Notes
-```
-
-**Wait 1 minute for completion**
-
-**Expected Result:** Green checkmarks ✅
+1. Go to **"Actions"** tab
+2. Find **"2️⃣ Approval & Merge to Main"** (starts automatically)
+3. Wait 1 minute for completion
+4. Green checkmarks ✅
 
 ---
 
-## Step 11: Verify Merge & Tag Creation
+## Step 11: Watch Workflow 3 (Deploy)
 
-### 11.1: Check Main Branch
+1. Go to **"Actions"** tab
+2. Find **"3️⃣ Deploy to Staging"** (starts automatically)
+3. Wait 1-2 minutes
+4. Green checkmarks ✅
 
-1. **Go to "Code"** tab
-2. **Find branch dropdown** (left side)
-3. **Click dropdown**
-4. **You should see "main"** branch now!
-5. **Click "main"** to verify your code is there
-
-### 11.2: Check Version Tag
-
-1. **Go to "Releases"** tab
-2. **You should see TWO releases:**
-   - Old RC release (draft, gray) ← From Step 8
-   - New v1.0.0 release ← **NEW!** Just created!
-3. **Click on v1.0.0** to view it
-
----
-
-## Step 12: Watch Workflow 3 (Deployment)
-
-### 12.1: Check Deployment
-
-1. **Go to "Actions"** tab
-2. **Find "3️⃣ Deploy to Staging"** workflow
-3. **Click on it** to watch progress
-
-### 12.2: Watch the Steps
-
-```
-✅ 📥 Checkout code
-✅ 🏷️ Get Version from Tag
-✅ 🐍 Setup Python
-✅ 📦 Install dependencies
-✅ ✅ Run Tests
-✅ 🚀 Deploy to Staging
-✅ 🏥 Health Check
-✅ ✨ Deployment Complete
-```
-
-**Wait 1-2 minutes for completion**
-
-**Expected Result:** All green checkmarks ✅
-
----
-
-## Step 13: Verify Deployment Succeeded
-
-### 13.1: Check Workflow Output
-
-1. **Open "3️⃣ Deploy to Staging"** workflow
-2. **Find "Deploy to Staging"** job
-3. **Scroll to "🚀 Deploy to Staging"** step
-4. **You should see:**
-   ```
-   ═══════════════════════════════
-   🚀 DEPLOYING TO STAGING
-   ═══════════════════════════════
-   Version: v1.0.0
-   Timestamp: [date]
-   ...
-   ✅ Application started
-   Staging URL: https://staging.example.com
-   ═══════════════════════════════
-   ```
-
-### 13.2: Check Health Check
-
-1. **Find "🏥 Health Check"** step
-2. **You should see:**
-   ```
-   ✅ Calculator health check passed
-   ✅ All health checks passed
-   ```
+**🎉 DONE! Your pipeline is working!**
 
 ---
 
 # 📊 Complete Pipeline Flow Summary
 
-Here's what happened in order:
+| Step | Trigger | Time | Status |
+|------|---------|------|--------|
+| Code pushed | You push | 0 min | 👤 Manual |
+| Tests run | Push detected | 1 min | ✅ Auto |
+| Draft release | Tests pass | 3 min | ✅ Auto |
+| Team approves | Publish release | 3 min | 👥 Manual |
+| Merge to main | Release published | 5 min | ✅ Auto |
+| Deploy to staging | Tag created | 7 min | ✅ Auto |
+| Health checks pass | Deploy succeeds | 9 min | ✅ Auto |
 
-| Step | Trigger | Action | Time | Status |
-|------|---------|--------|------|--------|
-| 1 | You pushed to develop | Workflow 1 starts | 0 min | Automatic ✅ |
-| 2 | Tests run | Draft release created | 3 min | Automatic ✅ |
-| 3 | You click "Edit" + Publish | Workflow 2 starts | 3 min | **Manual** 👥 |
-| 4 | Release published | Merge to main + create tag | 5 min | Automatic ✅ |
-| 5 | Tag created | Workflow 3 starts | 5 min | Automatic ✅ |
-| 6 | Tests pass | Deploy to staging | 7 min | Automatic ✅ |
-| 7 | Health checks pass | **Staging is LIVE!** 🎉 | 9 min | Done! ✅ |
-
-**Total time:** ~10 minutes from code push to live staging
-
----
-
-# 🔄 Day-to-Day Usage
-
-Now that it's set up, here's how you use it:
-
-## Developer's Daily Workflow
-
-```powershell
-# Make changes to your code
-# Edit src/app.py or tests/test_app.py
-
-# Test locally (optional)
-pytest tests/
-
-# Commit changes
-git add .
-git commit -m "feature: add new calculator function"
-
-# Push to develop
-git push origin develop
-
-# ← GitHub Actions automatically runs tests
-# ← Draft release is created
-# ← Workflow 1 completes in ~3 min
-```
-
-## Team Approval Workflow
-
-```
-1. Get notified of new draft release
-2. Go to Releases tab
-3. Download test report
-4. Review test results
-5. If OK:
-   - Click "Edit"
-   - Uncheck "Draft"
-   - Click "Update release"
-6. ← GitHub Actions automatically merges & deploys
-7. ← QA can test in staging ~10 min after push
-```
-
----
-
-# 🎯 Key Concepts
-
-### Branch Strategy
-
-| Branch | Purpose | Who | When |
-|--------|---------|-----|------|
-| **develop** | Daily development | Developers | Daily |
-| **main** | Production-ready | Approved code only | After approval |
-
-### Workflow Triggers
-
-| Workflow | Triggers On | Time | Next Step |
-|----------|------------|------|-----------|
-| **Build & Test** | Push to develop | 2-3 min | Draft release created |
-| **Approval & Merge** | Release published | 1 min | main branch merged |
-| **Deploy** | Tag created | 1-2 min | Staging is live |
-
-### Approval Gate
-
-**The draft release is your approval gate!**
-
-```
-Build passes → Draft release created
-                        ↓
-                    Team reviews
-                        ↓
-                  Team approves (publishes release)
-                        ↓
-              Auto-merge & auto-deploy
-```
+**Total: ~10 minutes from push to staging live**
 
 ---
 
 # ✅ Verification Checklist
 
-After completing all steps, verify everything works:
-
 ### Workflow 1 ✅
-- [ ] Workflow "1️⃣ Build & Test" ran
-- [ ] All tests passed ✅
+- [ ] Workflow ran
+- [ ] All tests passed
 - [ ] Draft release created
 
 ### Workflow 2 ✅
-- [ ] You published the draft release
-- [ ] Workflow "2️⃣ Approval & Merge to Main" ran
-- [ ] main branch was created
-- [ ] Release tag v1.0.0 was created
+- [ ] You published the release
+- [ ] Workflow ran automatically
+- [ ] Main branch was created
+- [ ] Release tag created
 
 ### Workflow 3 ✅
-- [ ] Workflow "3️⃣ Deploy to Staging" ran
-- [ ] Tests ran again during deployment
+- [ ] Workflow ran automatically
+- [ ] Tests ran
 - [ ] Health checks passed
-- [ ] All steps have green checkmarks ✅
+- [ ] All green checkmarks ✅
 
 ### Overall ✅
-- [ ] Three workflows exist in `.github/workflows/`
+- [ ] Three workflows in `.github/workflows/`
 - [ ] Staging environment configured
 - [ ] Complete flow works end-to-end
-- [ ] Total time: ~10 minutes from push to staging live
+
+---
+
+# 🔄 Day-to-Day Usage
+
+**Developer:**
+```powershell
+# Make changes
+# Commit and push
+git push origin develop
+
+# → Automatic tests run
+# → Draft release created
+# → Workflow 1 completes in ~3 min
+```
+
+**Team:**
+```
+1. Get notified of new draft release
+2. Review results
+3. If OK: Edit → Uncheck Draft → Update release
+
+↓ Automatic merge & deployment (~10 min total)
+```
 
 ---
 
@@ -1009,31 +735,13 @@ Send Slack/email notifications when:
 
 # 🎉 Summary
 
-You've now created a **complete CI/CD pipeline**:
+You've created a **production-grade CI/CD pipeline**:
 
-✅ **Continuous Integration:** Code is tested automatically  
-✅ **Continuous Delivery:** Code is prepared for deployment  
-✅ **Approval Gate:** Team reviews before deployment  
-✅ **Continuous Deployment:** Code automatically deploys after approval  
-✅ **Tagging:** Version tags trigger deployment  
-✅ **All in GitHub:** No external tools needed  
+✅ Continuous Integration (automatic testing)
+✅ Continuous Delivery (approval gate)
+✅ Continuous Deployment (automatic deployment)
+✅ Team approval workflow
+✅ Automatic tagging and versioning
+✅ All in GitHub (no external tools)
 
-**This is production-grade automation!** 🚀
-
----
-
-## 💡 Key Takeaways
-
-1. **Develop branch** = where you work daily
-2. **Build & Test workflow** = automatic on every push
-3. **Draft release** = waiting for team approval
-4. **Team publishes release** = approval happens here
-5. **Main branch** = gets merged automatically
-6. **Version tag** = triggers deployment automatically
-7. **Staging environment** = where code runs after approval
-
-**The entire flow is automated except for step 4 (team approval).**
-
----
-
-**You're now a CI/CD expert! Congratulations! 🎉**
+**You're now a CI/CD expert! Congratulations!** 🚀
