@@ -1,4 +1,3 @@
-[complete-cicd-guide.md](https://github.com/user-attachments/files/24404037/complete-cicd-guide.md)
 # Complete CI/CD Pipeline for Beginners – GitHub to Deployment
 
 **Everything inside GitHub. No external tools needed.**
