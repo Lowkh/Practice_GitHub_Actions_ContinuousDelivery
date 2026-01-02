@@ -1037,4 +1037,3 @@ You've now created a **complete CI/CD pipeline**:
 ---
 
 **You're now a CI/CD expert! Congratulations! 🎉**
-
