@@ -242,8 +242,7 @@ To avoid `ModuleNotFoundError: No module named 'src'`, ensure both `src` and `te
 
 ```powershell
 # Create __init__.py files
-New-Item -Path src\__init__.py -ItemType File -Force
-New-Item -Path tests\__init__.py -ItemType File -Force
+# This is an empty file
 ```
 
 
@@ -368,7 +367,7 @@ jobs:
             # Release Candidate
             **Version:** ${{ steps.version.outputs.rc_version }}
             **Status:** Waiting for team approval
-            **To Approve:** Edit → Uncheck Draft → Update
+            **To Approve:** Edit → Publish release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -442,7 +441,7 @@ jobs:
 
 ## Step 5: Create Third Workflow – Deploy (CD - Deployment)
 
-This workflow runs when a tag (`v*`) is pushed (from workflow 2).[^1]
+This workflow runs when a tag (`v*`) is pushed (from Workflow 2).[^1]
 
 **Create file: `.github/workflows/3-deploy-staging.yml`**
 
@@ -536,36 +535,87 @@ git commit -m "test: trigger CI/CD pipeline"
 git push origin develop
 ```
 
-Wait 30 seconds for GitHub to detect the push.[^1]
+Wait ~30 seconds for GitHub to detect the push.[^1]
 
-## Step 8: Watch Workflow 1 (Build \& Test)
+***
 
-1. Go to your repo → **Actions**
-2. Look for **“1️⃣ Build \& Test”**
-3. Wait ~2–3 minutes for completion; all steps should be green.[^1]
+## Step 8: Watch Workflow 1 – Build \& Test
 
-## Step 9: Team Approval – Publish the Draft Release
+1. Go to your repo → **Actions**.
+2. Click **“1️⃣ Build \& Test”**.
+3. Open the latest run and wait ~2–3 minutes.
+4. Confirm:
+    - All steps are green.
+    - An HTML coverage report artifact was uploaded.
+    - A **draft** release was created with a tag like `v0.0.0-rc.20...`.[^1]
 
-1. Go to **Releases**
-2. Open the draft release
-3. Review results
-4. Click **Edit**
-5. Uncheck **“Set as a draft”**
-6. Click **Update release** (this is the approval step).[^1]
+***
 
-## Step 10: Watch Workflow 2 (Merge)
+## Step 9: Approve the Release in GitHub (Manual Gate)
 
-1. Go to **Actions**
-2. Look for **“2️⃣ Approval \& Merge to Main”**
-3. Wait ~1 minute for it to finish.[^1]
+This is your manual approval gate: you decide if the build from `develop` is good enough to go to `main` and staging.[^1]
 
-## Step 11: Watch Workflow 3 (Deploy)
+1. Open your repo on GitHub and click the **Releases** tab.
+2. Find the latest **Draft** release created by Workflow 1 (tag like `v0.0.0-rc.2026...`) and click its title.
+3. Review:
+    - The tag and target branch (should be based on `develop`).
+    - The description/body explaining it is a release candidate.
+    - Optionally, open **Actions → 1️⃣ Build \& Test** in a new tab to inspect logs and the HTML coverage report artifact.[^1]
+4. If something looks wrong (failed tests, wrong commit, etc.):
+    - You can delete or ignore this draft and fix your code, then push again to `develop` to generate a new draft release.
+5. If everything looks good and you want to approve:
+    - Scroll to the bottom of the draft release page.
+    - Click **Publish release**.
 
-1. Go to **Actions**
-2. Look for **“3️⃣ Deploy to Staging”**
-3. Wait ~1–2 minutes; tests and health check should pass.[^1]
+Publishing the release is the **approval action** and triggers Workflow 2 because it is configured with `on: release: types: [published]`.[^6][^1]
 
-🎉 Your pipeline is now fully working end to end, with imports and permissions correctly configured.[^2][^1]
+***
+
+## Step 10: Workflow 2 – Approval \& Merge to Main
+
+Workflow 2 automatically merges approved code from `develop` into `main` and creates a version tag.[^1]
+
+1. Go to the **Actions** tab.
+2. Click the workflow **“2️⃣ Approval \& Merge to Main”** in the left sidebar.
+3. Open the run that started just after you published the release.
+4. Confirm the steps:
+    - **📥 Checkout code**: fetches the full repository history (`fetch-depth: 0`).
+    - **⚙️ Configure Git**: sets the Git user name and email for commits/tags.
+    - **🌳 Prepare main branch**:
+        - If `main` does not exist, it creates and pushes it.
+        - If `main` exists, it checks it out so it can be updated.
+    - **🔄 Merge develop → main**: merges `origin/develop` into `main` with a `--no-ff` merge commit like `"Release approved"`.
+    - **🏷️ Create Release Tag**: creates an annotated tag (for example `v1.0.0`) pointing at the new `main` commit.
+    - **📤 Push to GitHub**: pushes the updated `main` and the new tag to the remote.[^1]
+5. When all steps are green:
+    - In the **Code** tab, switch to the `main` branch and confirm it now has your latest approved changes.
+    - In **Releases**, confirm a release with the new tag (e.g. `v1.0.0`) exists.
+
+Pushing this tag is what triggers Workflow 3, which listens on `push` to tags matching `v*`.[^1]
+
+***
+
+## Step 11: Workflow 3 – Deploy to Staging and Health Check
+
+Workflow 3 runs on the new tag and re-validates the code while simulating a deployment to the `staging` environment.[^1]
+
+1. In **Actions**, click the workflow **“3️⃣ Deploy to Staging”**.
+2. Open the run that started after Workflow 2 completed.
+3. Verify each step:
+    - **📥 Checkout code**: checks out the repository at the tag commit (e.g. `v1.0.0`).
+    - **🏷️ Get Version from Tag**: extracts the tag from `GITHUB_REF` and logs `Deploying version: v1.0.0` so you know exactly which version is being deployed.
+    - **🐍 Setup Python**: sets up Python 3.11 on the runner.
+    - **📦 Install dependencies**: upgrades `pip`, installs `requirements.txt`, and installs your package with `pip install -e .` so `from src.app import Calculator` works reliably.[^1]
+    - **✅ Run Tests**: executes `pytest tests/ -v` again on the tagged revision to confirm tests still pass at deploy time.
+    - **🚀 Deploy to Staging**: in this tutorial it just echoes deployment messages, but in a real system you would run your deployment script here.
+    - **🏥 Health Check**: runs a small Python snippet that:
+        - Imports `Calculator` from `src.app`.
+        - Asserts that `calc.add(2, 3) == 5`.
+        - Prints `✅ Health check passed` if successful.
+    - **✨ Deployment Complete**: prints `🎉 Successfully deployed!` at the end.[^1]
+4. If any step fails:
+    - Click the failing step to see logs and fix the underlying issue (tests, packaging, or workflow config), then start again from pushing to `develop`.
+5. When all steps are green and you see `🎉 Successfully deployed!`, the tagged version is considered successfully deployed to the **staging** environment and the full path `develop → approval → main → tag → staging` is working end-to-end.[^2][^1]
 
 ***
 
@@ -636,7 +686,7 @@ git push origin develop
 
 1. Get notified of new draft release
 2. Review results
-3. If OK: Edit → Uncheck Draft → Update release
+3. If OK: **Publish release**
 4. Auto-merge to `main` and deploy to `staging` (~10 min total)[^1]
 
 ***
@@ -660,20 +710,20 @@ git log --oneline -3
 
 ### Cannot publish release
 
-- Click **Edit** on the release
-- Ensure “Set as a draft” is checked, then uncheck it and click **Update release**.[^1]
+- Ensure you opened the **Draft** release.
+- Use the **Publish release** button at the bottom (no more “Set as a draft” checkbox in the new UI).[^6]
 
 
 ### Merge workflow does not run
 
-- Confirm the release status is “Published”, not “Draft”
+- Confirm the release status is “Published”, not “Draft”.
 - Check Actions for **2️⃣ Approval \& Merge to Main**.[^1]
 
 
 ### Deploy does not trigger
 
-- Check that a tag (e.g. `v1.0.0`) exists in **Releases**
-- Wait a couple of minutes
+- Check that a tag (e.g. `v1.0.0`) exists in **Releases**.
+- Wait a couple of minutes.
 - Refresh Actions and look for **3️⃣ Deploy to Staging**.[^1]
 
 ***
@@ -682,21 +732,21 @@ git log --oneline -3
 
 ### Option 1: Use the Pipeline Daily
 
-- Develop on `develop`
-- Team approves draft releases
+- Develop on `develop`.
+- Team approves draft releases.
 - Auto-deployment to `staging`.[^1]
 
 
 ### Option 2: Add Production Deployment
 
-Create `4-deploy-production.yml` with `workflow_dispatch` and manual version input.[^1]
+Create `4-deploy-production.yml` with `workflow_dispatch` and manual version input for production deployments.[^1]
 
 ### Option 3: Add Notifications
 
 Add Slack/email notifications for:
 
-- Test failures
-- Release waiting for approval
+- Test failures.
+- Release waiting for approval.
 - Deployment success/failure.[^1]
 
 ***
@@ -705,11 +755,11 @@ Add Slack/email notifications for:
 
 You now have a **production-grade CI/CD pipeline**:
 
-- Continuous Integration (automatic testing)
-- Continuous Delivery (manual approval gate)
-- Continuous Deployment (automatic deployment to staging)
-- Team approval workflow
-- Automatic tagging and versioning
+- Continuous Integration (automatic testing).
+- Continuous Delivery (manual approval gate).
+- Continuous Deployment (automatic deployment to staging).
+- Team approval workflow.
+- Automatic tagging and versioning.
 - All inside GitHub, with proper package imports and token permissions configured.[^3][^1]
 
 <div align="center">⁂</div>
@@ -723,4 +773,6 @@ You now have a **production-grade CI/CD pipeline**:
 [^4]: https://github.com/softprops/action-gh-release/issues/236
 
 [^5]: https://stackoverflow.com/questions/76362343/creating-a-release-using-github-action-fails-with-http-403/76523728
+
+[^6]: https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository
 
