@@ -302,6 +302,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: 📦 Install package
+        run: |
+          pip install -e .
+
       - name: ✅ Run Tests
         run: |
           pytest tests/ -v --cov=src --cov-report=html --cov-report=term
