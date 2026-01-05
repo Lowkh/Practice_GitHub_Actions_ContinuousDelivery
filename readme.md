@@ -239,10 +239,11 @@ setup(
 ### 2.6: Create Empty Init Files (Important)
 
 To avoid `ModuleNotFoundError: No module named 'src'`, ensure both `src` and `tests` are Python packages.[^1]
+Create the empty files accordingly to the folders  `src` and `tests`
 
 ```powershell
 # Create __init__.py files
-# This is an empty file
+# This is an empty file that must exist in 'src' and 'tests'
 ```
 
 
