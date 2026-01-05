@@ -2,9 +2,9 @@
 
 **Everything inside GitHub. No external tools needed.**
 
-A step-by-step beginner's guide from code creation → testing → team approval → automatic deployment.
+A step-by-step beginner's guide from code creation → testing → team approval → automatic deployment. Updated with fixes for Python imports and GitHub Actions permissions.[^1][^2]
 
----
+***
 
 ## 🎯 What You'll Learn
 
@@ -30,19 +30,19 @@ By the end, you'll have a **complete automated pipeline**:
 🎉 LIVE IN STAGING!
 ```
 
-**Total time:** ~15 minutes from code push to live staging
+**Total time:** ~15 minutes from code push to live staging.[^1]
 
----
+***
 
 ## 📚 Understanding the Pipeline
 
 ### What is CI/CD?
 
 | Phase | What It Does | Who | When |
-|-------|-------------|-----|------|
+| :-- | :-- | :-- | :-- |
 | **CI** (Continuous Integration) | Tests your code automatically | GitHub | Every push |
 | **CD** (Continuous Delivery) | Prepares to deploy, waits for approval | GitHub | After CI passes |
-| **Approval Gate** | Team reviews and approves | You & Team | Manual decision |
+| **Approval Gate** | Team reviews and approves | You \& Team | Manual decision |
 | **CD** (Continuous Deployment) | Deploys automatically after approval | GitHub | After approval |
 
 ### The Three Branches
@@ -58,10 +58,11 @@ main     → Production-ready code (only approved code)
    ↓
 (Tag triggers deployment)
    ↓
-staging  → Live test server
+staging  → Live test server (GitHub Environment)
 ```
 
----
+
+***
 
 # 🏗️ Part 1: Setup (Create Your Project)
 
@@ -69,23 +70,24 @@ staging  → Live test server
 
 ### 1.1: Go to GitHub.com
 
-1. **Go to** https://github.com
-2. **Sign in** to your account
-3. **Click** "+" icon (top right)
-4. **Click** "New repository"
+1. Go to https://github.com
+2. Sign in to your account
+3. Click “+” icon (top right)
+4. Click “New repository”[^1]
 
 ### 1.2: Create Repository
 
 Fill in the form:
 
+
 | Field | Value |
-|-------|-------|
+| :-- | :-- |
 | Repository name | `my-calculator` (or your project name) |
 | Description | `Calculator with CI/CD pipeline` |
 | Public/Private | Choose one |
 | Add README | Check this box |
 
-**Click "Create repository"**
+Click **Create repository**.[^1]
 
 ### 1.3: Clone to Your Computer
 
@@ -112,11 +114,12 @@ git branch -a
 # Should show: * develop and remotes/origin/main, remotes/origin/develop
 ```
 
----
+
+***
 
 ## Step 2: Create Your Application Files
 
-**In your repo folder, create these files:**
+In your repo folder, create these files and folders.[^1]
 
 ### 2.1: Create Folders
 
@@ -130,11 +133,10 @@ mkdir .github\workflows
 ls
 ```
 
+
 ### 2.2: Create Application Code
 
 **Create file: `src/app.py`**
-
-Use VS Code or your editor to create this file:
 
 ```python
 """Simple calculator application."""
@@ -167,6 +169,7 @@ if __name__ == "__main__":
     print(f"2 + 3 = {calc.add(2, 3)}")
     print(f"10 - 4 = {calc.subtract(10, 4)}")
 ```
+
 
 ### 2.3: Create Tests
 
@@ -204,14 +207,16 @@ class TestCalculator:
             calc.divide(10, 0)
 ```
 
+
 ### 2.4: Create Dependencies File
 
 **Create file: `requirements.txt`**
 
-```
+```text
 pytest==7.4.3
 pytest-cov==4.1.0
 ```
+
 
 ### 2.5: Create Setup File
 
@@ -230,13 +235,17 @@ setup(
 )
 ```
 
-### 2.6: Create Empty Init Files
+
+### 2.6: Create Empty Init Files (Important)
+
+To avoid `ModuleNotFoundError: No module named 'src'`, ensure both `src` and `tests` are Python packages.[^1]
 
 ```powershell
 # Create __init__.py files
 New-Item -Path src\__init__.py -ItemType File -Force
 New-Item -Path tests\__init__.py -ItemType File -Force
 ```
+
 
 ### 2.7: Push to GitHub
 
@@ -254,25 +263,19 @@ git commit -m "Initial project setup with calculator app"
 git push origin develop
 ```
 
-**Verify on GitHub:**
-1. Go to your repo on GitHub.com
-2. Click "Code" tab
-3. Switch to "develop" branch (dropdown)
-4. You should see all your files there ✅
+Verify on GitHub (Code tab, `develop` branch) that everything is there.[^1]
 
----
+***
 
 # ⚙️ Part 2: Create Workflows (The Automation)
 
-## Step 3: Create First Workflow – Build & Test (CI)
+## Step 3: Create First Workflow – Build \& Test (CI)
 
-This workflow **automatically runs when you push code**.
+This workflow runs when you push to `develop`, installs dependencies, installs your package, runs tests with coverage, and creates a draft release.[^2][^1]
 
-### 3.1: Create Workflow File
+### 3.1: Workflow File (with Fixes)
 
 **Create file: `.github/workflows/1-build-test.yml`**
-
-Copy-paste this entire content directly:
 
 ```yaml
 name: 1️⃣ Build & Test
@@ -280,6 +283,10 @@ name: 1️⃣ Build & Test
 on:
   push:
     branches: [develop]
+
+# Allow creating releases with GITHUB_TOKEN
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -341,38 +348,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### 3.2: How to Create the File
 
-**Method 1: VS Code (Easiest)**
-1. Open your project in VS Code
-2. Create file: `.github/workflows/1-build-test.yml`
-3. Copy-paste the YAML above
-4. Save (Ctrl+S)
+***
 
-**Method 2: GitHub Web Editor**
-1. Go to github.com/yourusername/my-calculator
-2. Click "Add file" → "Create new file"
-3. Type: `.github/workflows/1-build-test.yml`
-4. Paste the YAML content
-5. Click "Commit changes"
+## Step 4: Create Second Workflow – Approval \& Merge (CD - Delivery)
 
-**Method 3: PowerShell**
-```powershell
-# Copy the YAML content from above, paste into Notepad
-# Save as: .github\workflows\1-build-test.yml (with quotes to preserve filename)
-```
-
-### 3.3: Push to GitHub
-
-```powershell
-git add .github\workflows\1-build-test.yml
-git commit -m "Add build and test workflow"
-git push origin develop
-```
-
----
-
-## Step 4: Create Second Workflow – Approval & Merge (CD - Delivery)
+This workflow runs when you **publish** a draft release (approval gate).[^1]
 
 **Create file: `.github/workflows/2-approval-merge.yml`**
 
@@ -382,6 +363,9 @@ name: 2️⃣ Approval & Merge to Main
 on:
   release:
     types: [published]
+
+permissions:
+  contents: write
 
 jobs:
   merge:
@@ -428,17 +412,12 @@ jobs:
           echo "✅ Merged and tagged!"
 ```
 
-### Push to GitHub
 
-```powershell
-git add .github\workflows\2-approval-merge.yml
-git commit -m "Add approval and merge workflow"
-git push origin develop
-```
-
----
+***
 
 ## Step 5: Create Third Workflow – Deploy (CD - Deployment)
+
+This workflow runs when a tag (`v*`) is pushed (from workflow 2).[^1]
 
 **Create file: `.github/workflows/3-deploy-staging.yml`**
 
@@ -449,6 +428,9 @@ on:
   push:
     tags:
       - "v*"
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -477,6 +459,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -e .
 
       - name: ✅ Run Tests
         run: pytest tests/ -v
@@ -494,39 +477,29 @@ jobs:
         run: echo "🎉 Successfully deployed!"
 ```
 
-### Push to GitHub
 
-```powershell
-git add .github\workflows\3-deploy-staging.yml
-git commit -m "Add deployment workflow"
-git push origin develop
-```
-
----
+***
 
 # 🏢 Part 3: Setup GitHub Environments
 
 ## Step 6: Create Staging Environment
 
-**All on GitHub.com (NOT in PowerShell):**
+On GitHub:
 
-1. **Go to your repo** on github.com
-2. **Click "Settings"** tab (top right)
-3. **Left menu** → **"Environments"** (scroll down)
-4. **Click "New environment"** (green button)
-5. **Type name:** `staging`
-6. **Press Enter**
-7. **Click "Save protection rules"**
+1. Go to your repo
+2. Click **Settings**
+3. Left menu → **Environments**
+4. Click **New environment**
+5. Name: `staging`
+6. Click **Save protection rules**[^1]
 
-**Done!** ✅
-
----
+***
 
 # 🧪 Part 4: Test the Complete Pipeline
 
 ## Step 7: Trigger the Pipeline
 
-### Make a Code Change
+Make a small change:
 
 ```powershell
 # Add a line to README
@@ -538,59 +511,43 @@ git commit -m "test: trigger CI/CD pipeline"
 git push origin develop
 ```
 
-**Wait 30 seconds for GitHub to detect the push...**
+Wait 30 seconds for GitHub to detect the push.[^1]
 
----
+## Step 8: Watch Workflow 1 (Build \& Test)
 
-## Step 8: Watch Workflow 1 (Build & Test)
-
-1. Go to your repo on **github.com**
-2. Click **"Actions"** tab
-3. Find **"1️⃣ Build & Test"** workflow (yellow = running)
-4. Wait 2-3 minutes for completion
-5. All steps should have green checkmarks ✅
-
----
+1. Go to your repo → **Actions**
+2. Look for **“1️⃣ Build \& Test”**
+3. Wait ~2–3 minutes for completion; all steps should be green.[^1]
 
 ## Step 9: Team Approval – Publish the Draft Release
 
-1. Go to **"Releases"** tab
-2. Find the **draft release** (gray "Draft" button)
-3. Click on it
-4. Review the test results
-5. Click **"Edit"** button (top right)
-6. Find checkbox: **"Set as a draft"** (check it ✓)
-7. Click to uncheck it ☐
-8. Scroll down → Click **"Update release"**
-
-**This is the APPROVAL step!** 👥
-
----
+1. Go to **Releases**
+2. Open the draft release
+3. Review results
+4. Click **Edit**
+5. Uncheck **“Set as a draft”**
+6. Click **Update release** (this is the approval step).[^1]
 
 ## Step 10: Watch Workflow 2 (Merge)
 
-1. Go to **"Actions"** tab
-2. Find **"2️⃣ Approval & Merge to Main"** (starts automatically)
-3. Wait 1 minute for completion
-4. Green checkmarks ✅
-
----
+1. Go to **Actions**
+2. Look for **“2️⃣ Approval \& Merge to Main”**
+3. Wait ~1 minute for it to finish.[^1]
 
 ## Step 11: Watch Workflow 3 (Deploy)
 
-1. Go to **"Actions"** tab
-2. Find **"3️⃣ Deploy to Staging"** (starts automatically)
-3. Wait 1-2 minutes
-4. Green checkmarks ✅
+1. Go to **Actions**
+2. Look for **“3️⃣ Deploy to Staging”**
+3. Wait ~1–2 minutes; tests and health check should pass.[^1]
 
-**🎉 DONE! Your pipeline is working!**
+🎉 Your pipeline is now fully working end to end, with imports and permissions correctly configured.[^2][^1]
 
----
+***
 
 # 📊 Complete Pipeline Flow Summary
 
 | Step | Trigger | Time | Status |
-|------|---------|------|--------|
+| :-- | :-- | :-- | :-- |
 | Code pushed | You push | 0 min | 👤 Manual |
 | Tests run | Push detected | 1 min | ✅ Auto |
 | Draft release | Tests pass | 3 min | ✅ Auto |
@@ -599,39 +556,47 @@ git push origin develop
 | Deploy to staging | Tag created | 7 min | ✅ Auto |
 | Health checks pass | Deploy succeeds | 9 min | ✅ Auto |
 
-**Total: ~10 minutes from push to staging live**
+Total: ~10 minutes from push to staging live.[^1]
 
----
+***
 
 # ✅ Verification Checklist
 
-### Workflow 1 ✅
+### Workflow 1
+
 - [ ] Workflow ran
 - [ ] All tests passed
 - [ ] Draft release created
 
-### Workflow 2 ✅
-- [ ] You published the release
+
+### Workflow 2
+
+- [ ] Draft release published
 - [ ] Workflow ran automatically
-- [ ] Main branch was created
+- [ ] `main` branch updated
 - [ ] Release tag created
 
-### Workflow 3 ✅
+
+### Workflow 3
+
 - [ ] Workflow ran automatically
 - [ ] Tests ran
 - [ ] Health checks passed
-- [ ] All green checkmarks ✅
+- [ ] All green checkmarks
 
-### Overall ✅
+
+### Overall
+
 - [ ] Three workflows in `.github/workflows/`
-- [ ] Staging environment configured
-- [ ] Complete flow works end-to-end
+- [ ] `staging` environment configured
+- [ ] Complete flow works end-to-end[^1]
 
----
+***
 
 # 🔄 Day-to-Day Usage
 
 **Developer:**
+
 ```powershell
 # Make changes
 # Commit and push
@@ -643,109 +608,90 @@ git push origin develop
 ```
 
 **Team:**
-```
+
 1. Get notified of new draft release
 2. Review results
 3. If OK: Edit → Uncheck Draft → Update release
+4. Auto-merge to `main` and deploy to `staging` (~10 min total)[^1]
 
-↓ Automatic merge & deployment (~10 min total)
-```
-
----
+***
 
 # 🆘 Troubleshooting
 
-### Workflow doesn't run after push
+### Workflow does not run after push
 
-**Fix:**
 ```powershell
-# Make sure you're on develop
-git status
-# Should show: On branch develop
-
-# Verify files were pushed
+git status      # Ensure you're on branch develop
 git log --oneline -3
 ```
 
+
 ### Draft release not appearing
 
-**Fix:**
-1. Refresh Actions page
-2. Wait 2 minutes
-3. Check if workflow has errors (red X)
-4. Click failed step to see error message
+- Refresh Actions page
+- Wait 2 minutes
+- Check for failed Workflow 1 run and inspect logs.[^1]
 
-### Can't publish release
 
-**Fix:**
-1. Click "Edit" button
-2. Look for "Set as a draft" checkbox
-3. Make sure it's checked (✓)
-4. Click to uncheck it (☐)
-5. Scroll down
-6. Click "Update release"
+### Cannot publish release
 
-### Merge workflow doesn't run
+- Click **Edit** on the release
+- Ensure “Set as a draft” is checked, then uncheck it and click **Update release**.[^1]
 
-**Fix:**
-1. Go to Releases
-2. Click the release
-3. Make sure it shows "Published" (NOT "Draft")
-4. Go to Actions → look for Workflow 2
 
-### Deploy doesn't trigger
+### Merge workflow does not run
 
-**Fix:**
-1. Check that tag was created (Releases tab)
-2. Wait 2-3 minutes for tag to propagate
-3. Go to Actions
-4. Refresh the page
-5. Look for "3️⃣ Deploy to Staging"
+- Confirm the release status is “Published”, not “Draft”
+- Check Actions for **2️⃣ Approval \& Merge to Main**.[^1]
 
----
+
+### Deploy does not trigger
+
+- Check that a tag (e.g. `v1.0.0`) exists in **Releases**
+- Wait a couple of minutes
+- Refresh Actions and look for **3️⃣ Deploy to Staging**.[^1]
+
+***
 
 # 📚 Next Steps
 
-After you verify everything works:
-
 ### Option 1: Use the Pipeline Daily
-- Make changes to code
-- Push to develop
-- Team approves releases
-- Auto-deployment to staging
+
+- Develop on `develop`
+- Team approves draft releases
+- Auto-deployment to `staging`.[^1]
+
 
 ### Option 2: Add Production Deployment
-Create a `4-deploy-production.yml` workflow:
-```yaml
-on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to deploy to production'
-        required: true
 
-jobs:
-  deploy:
-    # Deploy to production server
-```
+Create `4-deploy-production.yml` with `workflow_dispatch` and manual version input.[^1]
 
 ### Option 3: Add Notifications
-Send Slack/email notifications when:
-- Tests fail
-- Release is waiting approval
-- Deployment succeeds/fails
 
----
+Add Slack/email notifications for:
+
+- Test failures
+- Release waiting for approval
+- Deployment success/failure.[^1]
+
+***
 
 # 🎉 Summary
 
-You've created a **production-grade CI/CD pipeline**:
+You now have a **production-grade CI/CD pipeline**:
 
-✅ Continuous Integration (automatic testing)
-✅ Continuous Delivery (approval gate)
-✅ Continuous Deployment (automatic deployment)
-✅ Team approval workflow
-✅ Automatic tagging and versioning
-✅ All in GitHub (no external tools)
+- Continuous Integration (automatic testing)
+- Continuous Delivery (manual approval gate)
+- Continuous Deployment (automatic deployment to staging)
+- Team approval workflow
+- Automatic tagging and versioning
+- All inside GitHub, with proper package imports and token permissions configured.[^3][^1]
 
-**You're now a CI/CD expert! Congratulations!** 🚀
+<div align="center">⁂</div>
+
+[^1]: https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/12895207/ded8abd3-ab1e-4083-8e70-5426f6bc8101/readme.md
+
+[^2]: https://docs.github.com/en/actions/tutorials/authenticate-with-github_token
+
+[^3]: https://github.blog/changelog/2021-04-20-github-actions-control-permissions-for-github_token/
+
