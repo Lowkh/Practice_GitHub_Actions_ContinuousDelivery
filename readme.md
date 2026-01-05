@@ -269,6 +269,31 @@ Verify on GitHub (Code tab, `develop` branch) that everything is there.[^1]
 
 # ⚙️ Part 2: Create Workflows (The Automation)
 
+### Important: Enable Read/Write Permissions for Workflows
+
+For GitHub Actions to create releases and push tags/branches, the `GITHUB_TOKEN` must have **read and write** permissions.[^2][^3]
+
+1. In your repo, go to **Settings → Actions → General**.
+2. Under **Workflow permissions**, select **Read and write permissions**, then click **Save**.
+3. In your workflow files, ensure you set permissions explicitly, for example:
+```yaml
+# 1-build-test.yml
+permissions:
+  contents: write
+
+# 2-approval-merge.yml
+permissions:
+  contents: write
+
+# 3-deploy-staging.yml
+permissions:
+  contents: read
+```
+
+This avoids `403 Resource not accessible by integration` when creating releases or pushing tags from workflows.[^4][^5]
+
+***
+
 ## Step 3: Create First Workflow – Build \& Test (CI)
 
 This workflow runs when you push to `develop`, installs dependencies, installs your package, runs tests with coverage, and creates a draft release.[^2][^1]
@@ -694,4 +719,8 @@ You now have a **production-grade CI/CD pipeline**:
 [^2]: https://docs.github.com/en/actions/tutorials/authenticate-with-github_token
 
 [^3]: https://github.blog/changelog/2021-04-20-github-actions-control-permissions-for-github_token/
+
+[^4]: https://github.com/softprops/action-gh-release/issues/236
+
+[^5]: https://stackoverflow.com/questions/76362343/creating-a-release-using-github-action-fails-with-http-403/76523728
 
